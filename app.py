@@ -74,6 +74,12 @@ def download():
         "no_warnings": True,
         "restrictfilenames": False,
     }
+
+    # If a cookies file is mounted (e.g. Render Secret File), use it so
+    # requests look like a real logged-in browser instead of a cloud server.
+    cookie_path = "/etc/secrets/cookies.txt"
+    if os.path.exists(cookie_path):
+        ydl_opts["cookiefile"] = cookie_path
     if is_audio:
         ydl_opts["postprocessors"] = [{
             "key": "FFmpegExtractAudio",

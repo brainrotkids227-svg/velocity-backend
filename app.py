@@ -71,6 +71,11 @@ def download():
         "quiet": True,
         "no_warnings": True,
         "restrictfilenames": False,
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["android", "web"],
+            }
+        },
     }
 
     secret_cookie_path = "/etc/secrets/cookies.txt"

@@ -16,10 +16,8 @@ import yt_dlp
 
 app = Flask(__name__)
 
-# Lock this down to your actual frontend domain before going live.
 CORS(app, resources={r"/api/*": {"origins": os.environ.get("ALLOWED_ORIGIN", "*")}})
 
-# Simple shared-secret gate so randoms on the internet can't use your server.
 ACCESS_KEY = os.environ.get("VELOCITY_ACCESS_KEY", "")
 
 DOWNLOAD_ROOT = Path("/tmp/velocity_downloads")
@@ -36,7 +34,7 @@ QUALITY_MAP = {
 
 def _check_key():
     if not ACCESS_KEY:
-        return True  # no key configured, gate disabled (fine for personal-only use behind auth elsewhere)
+        return True
     supplied = request.headers.get("X-Access-Key", "")
     return supplied == ACCESS_KEY
 
@@ -75,11 +73,17 @@ def download():
         "restrictfilenames": False,
     }
 
-    # If a cookies file is mounted (e.g. Render Secret File), use it so
-    # requests look like a real logged-in browser instead of a cloud server.
     cookie_path = "/etc/secrets/cookies.txt"
-    if os.path.exists(cookie_path):
+    cookie_found = os.path.exists(cookie_path)
+    print(f"[velocity] cookie_path={cookie_path} exists={cookie_found}")
+    if cookie_found:
+        try:
+            size = os.path.getsize(cookie_path)
+            print(f"[velocity] cookies.txt size={size} bytes")
+        except Exception as e:
+            print(f"[velocity] could not stat cookies.txt: {e}")
         ydl_opts["cookiefile"] = cookie_path
+
     if is_audio:
         ydl_opts["postprocessors"] = [{
             "key": "FFmpegExtractAudio",
@@ -110,8 +114,6 @@ def download():
 
 @app.route("/api/file/<job_id>/<path:filename>", methods=["GET"])
 def get_file(job_id, filename):
-    # No key check here so the browser's plain <a href> download works.
-    # job_id is a random uuid, so this isn't guessable/listable.
     file_path = DOWNLOAD_ROOT / job_id / filename
     if not file_path.exists():
         return jsonify({"error": "Not found or expired"}), 404

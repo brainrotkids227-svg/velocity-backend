@@ -73,16 +73,18 @@ def download():
         "restrictfilenames": False,
     }
 
-    cookie_path = "/etc/secrets/cookies.txt"
-    cookie_found = os.path.exists(cookie_path)
-    print(f"[velocity] cookie_path={cookie_path} exists={cookie_found}")
+    secret_cookie_path = "/etc/secrets/cookies.txt"
+    writable_cookie_path = "/tmp/cookies.txt"
+    cookie_found = os.path.exists(secret_cookie_path)
+    print(f"[velocity] secret_cookie_path={secret_cookie_path} exists={cookie_found}")
     if cookie_found:
         try:
-            size = os.path.getsize(cookie_path)
-            print(f"[velocity] cookies.txt size={size} bytes")
+            shutil.copyfile(secret_cookie_path, writable_cookie_path)
+            size = os.path.getsize(writable_cookie_path)
+            print(f"[velocity] copied cookies.txt to {writable_cookie_path}, size={size} bytes")
+            ydl_opts["cookiefile"] = writable_cookie_path
         except Exception as e:
-            print(f"[velocity] could not stat cookies.txt: {e}")
-        ydl_opts["cookiefile"] = cookie_path
+            print(f"[velocity] failed to copy cookies.txt: {e}")
 
     if is_audio:
         ydl_opts["postprocessors"] = [{

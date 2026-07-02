@@ -103,8 +103,22 @@ def download():
             info = ydl.extract_info(url, download=True)
             title = info.get("title", "video")
     except Exception as e:
-        shutil.rmtree(job_dir, ignore_errors=True)
-        return jsonify({"error": str(e)}), 500
+        err_msg = str(e)
+        print(f"[velocity] primary format failed: {err_msg}")
+        if "Requested format is not available" in err_msg and not is_audio:
+            try:
+                fallback_opts = dict(ydl_opts)
+                fallback_opts["format"] = "best"
+                print("[velocity] retrying with format='best'")
+                with yt_dlp.YoutubeDL(fallback_opts) as ydl:
+                    info = ydl.extract_info(url, download=True)
+                    title = info.get("title", "video")
+            except Exception as e2:
+                shutil.rmtree(job_dir, ignore_errors=True)
+                return jsonify({"error": str(e2)}), 500
+        else:
+            shutil.rmtree(job_dir, ignore_errors=True)
+            return jsonify({"error": err_msg}), 500
 
     files = list(job_dir.glob("*"))
     if not files:
